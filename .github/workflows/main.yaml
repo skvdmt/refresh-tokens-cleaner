@@ -56,16 +56,7 @@ jobs:
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
       - name: Creating and running application container.
         run: |
-          ssh -i ~/.ssh/github_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<EOF
-            set -e
-            docker stop ${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }} || true
-            docker rm ${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }} || true
-            docker pull ${{ github.repository }}-v${{ vars.MAJOR_VERSION }}
-            CRON_JOB="*/5 * * * * docker run --rm --name ${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }} --network ${{ secrets.DOCKER_NETWORK }} --env REDIS_PASSWORD=${REDIS_PASSWORD} --volume ${{ secrets.HOME }}/logs/${{ github.event.repository.name }}:/var/log/${{ github.event.repository.name }} ${{ github.repository }}-v${{ vars.MAJOR_VERSION }}"
-            if ! crontab -l 2>/dev/null | grep -Fq "${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }}"; then
-              (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-            fi
-          EOF
+          ssh -i ~/.ssh/github_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker pull ${{ github.repository }}-v${{ vars.MAJOR_VERSION }} && (crontab -l 2>/dev/null | grep -Fq '${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }}' || (crontab -l 2>/dev/null; echo '*/5 * * * * docker run --rm --name ${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }} --network ${{ secrets.DOCKER_NETWORK }} --env REDIS_PASSWORD=\$REDIS_PASSWORD ${{ github.repository }}-v${{ vars.MAJOR_VERSION }}') | crontab -)"
       - name: Remove SSH key files.
         if: success() || failure()
         run: |
