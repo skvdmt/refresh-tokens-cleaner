@@ -17,8 +17,14 @@ const (
 	// Имя файла журнала ошибок.
 	LOG_ERROR_FILENAME = "error.log"
 
+	// Имя файла журнала информации.
+	LOG_INFO_FILENAME = "info.log"
+
 	// Флаги файла журнала ошибок.
 	LOG_ERROR_FLAGS = os.O_CREATE | os.O_APPEND | os.O_RDWR
+
+	// Флаги файла журнала информации.
+	LOG_INFO_FLAGS = os.O_CREATE | os.O_APPEND | os.O_RDWR
 )
 
 // Log Глобальный экземпляр журнала.
@@ -42,6 +48,14 @@ func NewLogger() (*Logger, error) {
 			return nil, err
 		}
 	}
+	i, err := os.OpenFile(
+		filepath.Join(ld, LOG_INFO_FILENAME),
+		LOG_INFO_FLAGS,
+		os.ModePerm,
+	)
+	if err != nil {
+		return nil, err
+	}
 	e, err := os.OpenFile(
 		filepath.Join(ld, LOG_ERROR_FILENAME),
 		LOG_ERROR_FLAGS,
@@ -51,7 +65,7 @@ func NewLogger() (*Logger, error) {
 		return nil, err
 	}
 	return &Logger{
-		Info:      slog.New(slog.NewTextHandler(os.Stdout, nil)),
+		Info:      slog.New(slog.NewTextHandler(io.MultiWriter(i, os.Stdout), nil)),
 		Error:     slog.New(slog.NewJSONHandler(io.MultiWriter(e, os.Stderr), nil)),
 		errorFile: e,
 	}, nil
