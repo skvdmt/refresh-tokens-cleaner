@@ -62,8 +62,7 @@ jobs:
             docker rm ${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }} || true
             docker pull ${{ github.repository }}-v${{ vars.MAJOR_VERSION }}
             CRON_JOB="*/5 * * * * docker run --rm --name ${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }} --network ${{ secrets.DOCKER_NETWORK }} --env REDIS_PASSWORD=${REDIS_PASSWORD} --volume ${{ secrets.HOME }}/logs/${{ github.event.repository.name }}:/var/log/${{ github.event.repository.name }} ${{ github.repository }}-v${{ vars.MAJOR_VERSION }}"
-            if crontab -l 2>/dev/null | grep -Fq "refresh-tokens-cleaner"; then
-            else
+            if ! crontab -l 2>/dev/null | grep -Fq "refresh-tokens-cleaner"; then
               (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
             fi
           EOF
