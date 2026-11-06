@@ -1,0 +1,69 @@
+name: Integration and deploy.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Creating SSH key files.
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{secrets.SSH_PRIVATE_KEY}}" > ~/.ssh/github_ed25519
+          sudo chmod 600 ~/.ssh/github_ed25519
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+      - name: Cloning sources.
+        run: |
+          ssh -i ~/.ssh/github_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<EOF
+            cd ~/src
+            rm -rf ${{ github.repository }}
+            git clone ssh://git@github.com/${{ github.repository }}.git
+          EOF
+      - name: Building.
+        run: |
+          ssh -i ~/.ssh/github_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<EOF
+            set -e
+            cd ~/src/${{ github.event.repository.name }}
+            docker build \
+             --build-arg NAME=${{ github.event.repository.name }} \
+             --no-cache \
+             --tag ${{ github.repository }}-v${{ vars.MAJOR_VERSION }} .
+            docker push ${{ github.repository }}-v${{ vars.MAJOR_VERSION }}
+          EOF
+      - name: Remove sources.
+        if: success() || failure()
+        run: |
+          ssh -i ~/.ssh/github_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<EOF
+            docker rmi ${{ github.repository }}:testing
+            docker buildx rm ${{ secrets.DOCKER_NETWORK }}-builder
+            rm -rf ~/src/${{ github.event.repository.name }}
+          EOF
+      - name: Remove ssh key files.
+        if: success() || failure()
+        run: |
+          rm -f ~/.ssh/github_ed25519
+          rm -f ~/.ssh/known_hosts
+  deploy:
+    needs: [integration]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Creating SSH key files.
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/github_ed25519
+          sudo chmod 600 ~/.ssh/github_ed25519
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+      - name: Creating and running application container.
+        run: |
+          ssh -i ~/.ssh/github_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<EOF
+            set -e
+            docker stop ${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }} || true
+            docker rm ${{ github.event.repository.name }}-v${{ vars.MAJOR_VERSION }} || true
+            docker pull ${{ github.repository }}-v${{ vars.MAJOR_VERSION }}
+          EOF
+      - name: Remove SSH key files.
+        if: success() || failure()
+        run: |
+          rm -f ~/.ssh/github_ed25519
+          rm -f ~/.ssh/known_hosts
