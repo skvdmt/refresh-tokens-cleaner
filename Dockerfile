@@ -28,6 +28,6 @@ COPY ./config/prod.yaml /etc/${NAME}/prod.yaml
 COPY --from=building /usr/local/bin/${NAME} /usr/local/bin/${NAME}
 COPY ./docker-entrypoint.sh /usr/local/bin
 # Создание точки входа.
-RUN echo "exec ${NAME} >> /var/log/${NAME}/info.log 2>&1" >> /usr/local/bin/docker-entrypoint.sh
+RUN echo "exec ${NAME} 1>> /var/log/${NAME}/info.log" >> /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT [ "docker-entrypoint.sh" ]
