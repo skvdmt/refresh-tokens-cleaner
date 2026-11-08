@@ -2,4 +2,4 @@ redis:
   host: localhost
   port: 6379
   db: 0
-token_time_to_live_minutes: 1
+token_ttl: 24h

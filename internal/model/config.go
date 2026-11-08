@@ -3,6 +3,7 @@ package model
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -42,8 +43,8 @@ type RedisConfig struct {
 
 // Config Конфигурация.
 type Config struct {
-	Redis           *RedisConfig `yaml:"redis"`
-	TokenTTLMinutes int          `yaml:"token_time_to_live_minutes"`
+	Redis    *RedisConfig  `yaml:"redis"`
+	TokenTTL time.Duration `yaml:"token_ttl"`
 }
 
 // NewConfig Конфигурация.

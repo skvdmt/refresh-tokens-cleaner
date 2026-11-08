@@ -34,7 +34,7 @@ func RemoveExpiredRefreshTokens() error {
 	var cnt uint64
 	var usrs int
 	var tdel int64
-	exp := time.Now().Unix() - int64((time.Duration(model.Conf.TokenTTLMinutes) * time.Minute).Seconds())
+	exp := time.Now().Add(-model.Conf.TokenTTL).Unix()
 	for {
 		var keys []string
 		var err error
